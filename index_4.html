@@ -102,6 +102,13 @@
     cursor:pointer; letter-spacing:1px;
   }
   .send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .pay-btn {
+    display:block; width:100%; padding:16px; border:2px solid var(--lime); border-radius:14px;
+    background:transparent; color:var(--lime); font-family:'Alfa Slab One'; font-size:18px;
+    cursor:pointer; letter-spacing:1px; margin-top:12px; text-align:center; text-decoration:none;
+    box-sizing:border-box;
+  }
+  .pay-btn.is-disabled { opacity:0.4; pointer-events:none; }
   .hint { text-align:center; font-size:12px; opacity:0.6; margin-top:10px; }
   footer { text-align:center; margin-top:34px; font-size:12px; opacity:0.6; padding:0 20px; }
 
@@ -327,6 +334,8 @@
   <button type="button" class="clear-link" id="clearOrder" data-i18n="clearOrder">Clear order</button>
   <button class="send-btn" id="sendBtn" disabled data-i18n="sendBtn">Send Order via Text</button>
   <div class="hint" data-i18n="hint">Opens your messaging app with your order pre-filled — just hit send.</div>
+  <a href="#" class="pay-btn is-disabled" id="payBtn" target="_blank" rel="noopener" data-i18n="payBtn">Pay with Cash App</a>
+  <div class="hint" data-i18n="payHint">Opens Cash App with your total pre-filled — pay any time before delivery or pickup.</div>
 </div>
 
 <footer>
@@ -439,7 +448,8 @@
   // Paste your Google Apps Script Web App URL here once you've deployed it
   // (see setup steps) -- until then, order logging is silently skipped.
   const CONFIG = {
-    SHEET_WEBHOOK_URL: "PASTE_YOUR_WEB_APP_URL_HERE"
+    SHEET_WEBHOOK_URL: "PASTE_YOUR_WEB_APP_URL_HERE",
+    CASHAPP_TAG: "$LisbethMontero0"
   };
 
   function logOrder(payload) {
@@ -499,6 +509,8 @@
       clearOrder: "Clear order",
       sendBtn: "Send Order via Text",
       hint: "Opens your messaging app with your order pre-filled \u2014 just hit send.",
+      payBtn: "Pay with Cash App",
+      payHint: "Opens Cash App with your total pre-filled \u2014 pay any time before delivery or pickup.",
       cartTap: "Tap to review & send",
       reviewSend: "Review & Send",
       nudgeMore: (n, bw, next, price, per) => `Add ${n} more ${bw} to unlock the ${next}-for-$${price} deal \u2014 just $${per} each instead of $8.`,
@@ -528,6 +540,8 @@
       clearOrder: "Vaciar pedido",
       sendBtn: "Enviar Pedido por Mensaje",
       hint: "Abre tu app de mensajes con el pedido ya escrito \u2014 solo presiona enviar.",
+      payBtn: "Pagar con Cash App",
+      payHint: "Abre Cash App con tu total ya escrito \u2014 paga en cualquier momento antes de la entrega o recogida.",
       cartTap: "Toca para revisar y enviar",
       reviewSend: "Revisar y Enviar",
       nudgeMore: (n, bw, next, price, per) => `Agrega ${n} ${bw} m\u00e1s para obtener el precio de ${next} por $${price} \u2014 solo $${per} cada una en vez de $8.`,
@@ -627,6 +641,7 @@
 
     const summaryEl = document.getElementById('summary');
     const sendBtn = document.getElementById('sendBtn');
+    const payBtn = document.getElementById('payBtn');
     const cartBar = document.getElementById('cartBar');
     const cartInfo = document.getElementById('cartInfo');
     const nudgeEl = document.getElementById('nudge');
@@ -634,6 +649,7 @@
     if (total === 0) {
       summaryEl.innerHTML = `<div>${t.noBottles}</div>`;
       sendBtn.disabled = true;
+      payBtn.classList.add('is-disabled');
       cartBar.classList.remove('visible');
       nudgeEl.style.display = 'none';
       return;
@@ -644,6 +660,14 @@
     summaryEl.innerHTML = lines.map(l => `<div>${l}</div>`).join('') +
       `<div class="total">${total} ${bw} &middot; ${t.est} $${price}</div>`;
     sendBtn.disabled = false;
+
+    if (CONFIG.CASHAPP_TAG && CONFIG.CASHAPP_TAG.indexOf('PASTE_') !== 0) {
+      const tag = CONFIG.CASHAPP_TAG.replace(/^\$/, '');
+      payBtn.href = `https://cash.app/$${tag}/${price}`;
+      payBtn.classList.remove('is-disabled');
+    } else {
+      payBtn.classList.add('is-disabled');
+    }
 
     cartInfo.innerHTML = `<strong>${total} ${bw} &middot; $${price}</strong>${t.cartTap}`;
     document.getElementById('cartBarBtn').textContent = t.reviewSend;
@@ -719,7 +743,7 @@
   // ---------------- POS (staff) mode ----------------
   // Change this PIN to whatever you like -- it's only a light deterrent,
   // not real security (anyone who can view page source can see it).
-  const POS_PIN = "1234";
+  const POS_PIN = "9823";
 
   const posQtys = {};
   Object.keys(FLAVOR_NAMES).forEach(id => posQtys[id] = 0);
